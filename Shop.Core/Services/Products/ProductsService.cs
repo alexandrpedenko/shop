@@ -8,19 +8,19 @@ namespace Shop.Core.Services.Products
     /// <summary>
     /// Product management service
     /// </summary>
-    /// <param name="productRepository"></param>
+    /// <param name="dbContext"></param>
     /// <param name="mapper"></param>
-    public class ProductService(ShopContext context, IMapper mapper)
+    public class ProductService(ShopContext dbContext, IMapper mapper)
     {
-        private readonly ShopContext _context = context;
+        private readonly ShopContext _dbContext = dbContext;
         private readonly IMapper _mapper = mapper;
 
         public async Task<Product> CreateProductAsync(Product product)
         {
             var dbModel = _mapper.Map<ProductModel>(product);
 
-            _context.Products.Add(dbModel);
-            await _context.SaveChangesAsync();
+            _dbContext.Products.Add(dbModel);
+            await _dbContext.SaveChangesAsync();
 
             return _mapper.Map<Product>(dbModel);
         }
