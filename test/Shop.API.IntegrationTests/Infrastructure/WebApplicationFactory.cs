@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shop.Core.DataEF;
 
-namespace Shop.API.IntegrationTests.WebApplicationFactory;
+namespace Shop.API.IntegrationTests.Infrastructure;
 
-public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStartup> where TStartup : class
+public sealed class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStartup> where TStartup : class
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -25,4 +25,10 @@ public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStar
             });
         });
     }
+}
+
+public abstract class ApiTestsBase(CustomWebApplicationFactory<Program> factory)
+    : IClassFixture<CustomWebApplicationFactory<Program>>
+{
+    protected readonly HttpClient _client = factory.CreateClient();
 }

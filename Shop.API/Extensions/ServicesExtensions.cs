@@ -24,7 +24,6 @@ namespace Shop.API.Extensions
             AddMapper(services);
             AddServices(services);
 
-
             services.AddControllers(options =>
             {
                 options.Filters.Add<ValidateIdAttribute>();

@@ -6,6 +6,8 @@
 
         public Title(string value)
         {
+            // ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
+
             if (string.IsNullOrWhiteSpace(value))
             {
                 throw new ArgumentException("Title cannot be empty");

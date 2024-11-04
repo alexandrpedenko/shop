@@ -10,7 +10,7 @@ namespace Shop.Core.Services.Products
     /// </summary>
     /// <param name="dbContext"></param>
     /// <param name="mapper"></param>
-    public class ProductService(ShopContext dbContext, IMapper mapper)
+    public sealed class ProductService(ShopContext dbContext, IMapper mapper)
     {
         private readonly ShopContext _dbContext = dbContext;
         private readonly IMapper _mapper = mapper;

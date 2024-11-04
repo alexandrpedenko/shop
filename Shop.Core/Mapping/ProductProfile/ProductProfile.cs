@@ -4,9 +4,8 @@ using Shop.Domain.Product;
 
 namespace Shop.Core.Mapping.ProductProfile
 {
-    public class ProductProfile : Profile
+    public sealed class ProductProfile : Profile
     {
-
         public ProductProfile()
         {
             CreateMap<Product, ProductModel>();

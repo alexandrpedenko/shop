@@ -13,7 +13,7 @@ namespace Shop.API.Controllers
     [ApiVersion(1)]
     [ApiController]
     [Route("api/v{v:apiVersion}/[controller]")]
-    public class ProductsController(ProductService productService) : ControllerBase
+    public sealed class ProductsController(ProductService productService) : ControllerBase
     {
         private readonly ProductService _productService = productService;
 

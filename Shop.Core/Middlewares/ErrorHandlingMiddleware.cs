@@ -4,7 +4,7 @@ using Shop.Core.Exceptions.Common;
 
 namespace Shop.Core.Middlewares
 {
-    public class ErrorHandlingMiddleware(RequestDelegate next)
+    public sealed class ErrorHandlingMiddleware(RequestDelegate next)
     {
         private readonly RequestDelegate _next = next;
 

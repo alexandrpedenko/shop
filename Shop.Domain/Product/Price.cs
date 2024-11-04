@@ -1,8 +1,8 @@
 ﻿namespace Shop.Domain.Product;
 
-public class Price
+public readonly record struct Price
 {
-    public decimal Value { get; }
+    public readonly decimal Value;
 
     public Price(decimal value)
     {

@@ -1,4 +1,4 @@
-﻿using Shop.API.IntegrationTests.WebApplicationFactory;
+﻿using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
 using System.Net;
 using System.Net.Http.Json;
