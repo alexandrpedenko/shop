@@ -1,7 +1,8 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Shop.Core.DataEF;
 using Shop.Core.DataEF.Models;
-using Shop.Domain.Product;
+using Shop.Domain.Products;
 
 namespace Shop.Core.Services.Products
 {
@@ -23,6 +24,13 @@ namespace Shop.Core.Services.Products
             await _dbContext.SaveChangesAsync();
 
             return _mapper.Map<Product>(dbModel);
+        }
+
+        public async Task<bool> CheckIfExistBySkuAsync(string sku)
+        {
+            var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.SKU == sku);
+
+            return product == null ? false : true;
         }
     }
 }

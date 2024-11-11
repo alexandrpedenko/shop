@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shop.Core", "Shop.Core\Shop
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shop.Domain", "Shop.Domain\Shop.Domain.csproj", "{386F7B54-34B9-4637-B850-B789D7C85E01}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shop.API.IntegrationTests", "test\Shop.API.IntegrationTests\Shop.API.IntegrationTests.csproj", "{82D02BAF-CF93-47EC-919C-FF46A3CEBE4B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shop.API.IntegrationTests", "test\Shop.API.IntegrationTests\Shop.API.IntegrationTests.csproj", "{82D02BAF-CF93-47EC-919C-FF46A3CEBE4B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

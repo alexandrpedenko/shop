@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Shop.Core.DataEF;
 using Shop.Core.Mapping.ProductProfile;
+using Shop.Core.Services.Orders;
 using Shop.Core.Services.Products;
 using Shop.Core.Validators.Attributes;
 using System.Reflection;
@@ -63,6 +64,7 @@ namespace Shop.API.Extensions
         public static IServiceCollection AddServices(this IServiceCollection services)
         {
             services.AddTransient<ProductService>();
+            services.AddTransient<OrdersService>();
 
             return services;
         }

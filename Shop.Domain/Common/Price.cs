@@ -1,4 +1,4 @@
-﻿namespace Shop.Domain.Product;
+﻿namespace Shop.Domain.Common;
 
 public readonly record struct Price
 {
