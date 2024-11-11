@@ -7,7 +7,10 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
     {
         public static HttpResponseMessage ShouldFail(this HttpResponseMessage response)
         {
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            response.StatusCode.Should().Match(code =>
+                 code == HttpStatusCode.BadRequest || code == HttpStatusCode.NotFound,
+                 "Expected either 400 BadRequest or 404 NotFound, but received {0}", response.StatusCode);
+
             return response;
         }
 

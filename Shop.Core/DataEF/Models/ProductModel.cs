@@ -3,7 +3,7 @@
     /// <summary>
     /// Product model
     /// </summary>
-    public class ProductModel
+    public sealed class ProductModel
     {
         /// <summary>
         ///  Product id
@@ -24,5 +24,9 @@
         ///  Product price
         /// </summary>
         public decimal Price { get; set; }
+
+        public required string SKU { get; set; }
+
+        public ICollection<OrderLineModel> OrderLines { get; set; } = [];
     }
 }

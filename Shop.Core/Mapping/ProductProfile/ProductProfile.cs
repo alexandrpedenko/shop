@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Shop.Core.DataEF.Models;
-using Shop.Domain.Product;
+using Shop.Domain.Products;
 
 namespace Shop.Core.Mapping.ProductProfile
 {

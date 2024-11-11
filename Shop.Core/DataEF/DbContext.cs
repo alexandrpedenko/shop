@@ -13,7 +13,8 @@ namespace Shop.Core.DataEF
         /// Products db set
         /// </summary>
         public DbSet<ProductModel> Products => Set<ProductModel>();
-
+        public DbSet<OrderModel> Orders => Set<OrderModel>();
+        public DbSet<OrderLineModel> OrderLines => Set<OrderLineModel>();
 
         /// <summary>
         /// Map entities config

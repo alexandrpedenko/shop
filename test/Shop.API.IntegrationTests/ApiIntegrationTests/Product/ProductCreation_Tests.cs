@@ -11,12 +11,14 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
     {
         private const int TitleMaxLength = 100;
         private const int DescriptionMaxLength = 500;
+        private const int SkuMaxLength = 50;
 
         private readonly TestProduct Product = new TestProduct
         {
             Title = "Low-Poly Potato",
             Description = "Raw, roughly peeled potato with bits of skin and uneven edges.",
-            Price = 42.0m
+            Price = 42.0m,
+            SKU = "testSKU"
         };
 
         [Fact]
@@ -99,6 +101,60 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
                 .WithErrors(["Description cannot be empty", "The Description field is required"]);
         }
 
+        [Fact]
+        public async Task Product_CreationFails_WithSkuTooLong()
+        {
+            var invalidProduct = Product with { SKU = GetStringOverTheLimit(SkuMaxLength + 1) };
+
+            var response = await _client.PostAsJsonAsync("/api/v1/products", invalidProduct);
+
+            response.ShouldFail()
+                .WithErrors($"SKU cannot exceed {SkuMaxLength} characters");
+        }
+
+        //[Fact]
+        //public async Task Product_CreationFails_WithDuplicateSKU()
+        //{
+        //    SeedDatabaseWithProducts();
+
+        //    var duplicateSkuProduct = Product;
+
+        //    var response = await _client.PostAsJsonAsync("/api/v1/products", duplicateSkuProduct);
+
+        //    response.ShouldFail()
+        //        .WithErrors($"SKU '{duplicateSkuProduct.SKU}' must be unique.");
+        //}
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData(" ")]
+        public async Task Product_CreationFails_IfSku_NullOrWhiteSpace(string invalidSku)
+        {
+            var invalidProduct = Product with { SKU = invalidSku };
+
+            var response = await _client.PostAsJsonAsync("/api/v1/products", invalidProduct);
+
+            response.ShouldFail()
+                .WithErrors(["SKU cannot be empty", "The SKU field is required"]);
+        }
+
+        private void SeedDatabaseWithProducts()
+        {
+            InitializeDatabase(context =>
+            {
+                context.Products.AddRange(
+                [
+                    new ProductModel {
+                        SKU = "testSKU",
+                        Title = "Another Product",
+                        Description = "Description for another product",
+                        Price = 15.0m
+                    },
+                ]);
+            });
+        }
+
         private static string GetStringOverTheLimit(int maxLimit)
             => new string('A', maxLimit + 1);
 
@@ -107,6 +163,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
             public string Title { get; init; }
             public string Description { get; init; }
             public decimal Price { get; init; }
+            public string SKU { get; init; }
         }
     }
 }

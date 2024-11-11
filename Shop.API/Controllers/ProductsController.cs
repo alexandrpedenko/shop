@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shop.API.Contracts.Requests.Products;
 using Shop.Core.Exceptions.Common;
 using Shop.Core.Services.Products;
-using Shop.Domain.Product;
+using Shop.Domain.Products;
 
 namespace Shop.API.Controllers
 {
@@ -29,10 +29,16 @@ namespace Shop.API.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequestDto request)
         {
+            if (await _productService.CheckIfExistBySkuAsync(request.SKU))
+            {
+                return BadRequest($"SKU '{request.SKU}' must be unique.");
+            }
+
             var product = new Product(
-                new Title(request.Title),
-                new Description(request.Description),
-                new Price(request.Price)
+                request.Title,
+                request.Description,
+                request.Price,
+                request.SKU
             );
 
             var createdProduct = await _productService.CreateProductAsync(product);
