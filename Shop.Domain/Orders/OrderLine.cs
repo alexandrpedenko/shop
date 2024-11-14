@@ -2,44 +2,16 @@
 
 namespace Shop.Domain.Orders
 {
-    public sealed class OrderLine
+    public sealed class OrderLine(SKU productSKU, Quantity quantity, Price price, int productId)
     {
-        private const int MinQuantity = 1;
-        private const int MaxQuantity = 100;
-
-        private Price _price;
-
         public int Id { get; private set; }
 
-        public string ProductSKU { get; private set; }
+        public int ProductId { get; private set; } = productId;
 
-        public int Quantity { get; private set; }
+        public Price Price { get; private set; } = price;
 
-        public decimal Price => _price.Value;
+        public SKU ProductSKU { get; private set; } = productSKU;
 
-        public OrderLine(string productSKU, int quantity)
-        {
-            if (quantity < MinQuantity)
-            {
-                throw new ArgumentException($"Quantity must be at least {MinQuantity}");
-            };
-            if (quantity > MaxQuantity)
-            {
-                throw new ArgumentException($"Quantity cannot exceed {MaxQuantity}");
-            }
-
-            ProductSKU = productSKU;
-            Quantity = quantity;
-        }
-
-        public void SetPrice(decimal price)
-        {
-            if (price <= 0)
-            {
-                throw new ArgumentException("Price must be greater than zero.");
-            }
-
-            _price = new Price(price);
-        }
+        public Quantity Quantity { get; private set; } = quantity;
     }
 }

@@ -1,12 +1,15 @@
 ﻿using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Shop.API.Contracts.Requests.Orders;
 using Shop.API.IntegrationTests.ApiIntegrationTests.Product;
 using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
+using Shop.Core.DTOs.Orders;
 using System.Net.Http.Json;
 
 namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
 {
+    [Collection("Database Tests")]
     public sealed class OrderCreation_Tests
         (CustomWebApplicationFactory<Program> factory)
         : ApiTestsBase(factory)
@@ -40,6 +43,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
 
             var createdOrderId = await response.Content.ReadFromJsonAsync<CreateOrderResponseDto>();
             createdOrderId!.Id.Should().BeGreaterThan(0);
+
+            await VerifyOrderInDatabase(createdOrderId!.Id, validRequest);
         }
 
         [Fact]
@@ -95,6 +100,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
 
         private void SeedDatabaseWithProducts()
         {
+
             InitializeDatabase(context =>
             {
                 context.Products.AddRange(
@@ -115,6 +121,27 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
                     new ProductForOrderDto { ProductSKU = "B0101", Quantity = quantity }
                 ]
             };
+        }
+
+        private async Task VerifyOrderInDatabase(int orderId, CreateOrderRequestDto request)
+        {
+            using var context = GetDbContext();
+
+            var orderInDb = await context.Orders
+                .Include(o => o.OrderLines)
+                .SingleOrDefaultAsync(o => o.Id == orderId);
+
+            orderInDb.Should().NotBeNull();
+            orderInDb!.OrderLines.Should().HaveCount(request.Products.Count);
+
+            foreach (var product in request.Products)
+            {
+                orderInDb.OrderLines.Should().Contain(ol =>
+                    ol.ProductSKU == product.ProductSKU &&
+                    ol.Quantity == product.Quantity &&
+                    ol.Price == context.Products.Single(p => p.SKU == product.ProductSKU).Price
+                );
+            }
         }
 
         public record CreateOrderResponseDto

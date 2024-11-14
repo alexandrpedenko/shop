@@ -66,6 +66,9 @@ namespace Shop.Core.Migrations
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Orders");
@@ -103,9 +106,6 @@ namespace Shop.Core.Migrations
                     b.HasKey("Id");
 
                     b.HasAlternateKey("SKU");
-
-                    b.HasIndex("SKU")
-                        .IsUnique();
 
                     b.ToTable("Products");
                 });

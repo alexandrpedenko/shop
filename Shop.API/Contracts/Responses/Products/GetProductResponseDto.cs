@@ -1,6 +1,6 @@
 ﻿namespace Shop.API.Contracts.Responses.Products
 {
-    public class GetProductResponseDto
+    public sealed record GetProductResponseDto
     {
         public int Id { get; set; }
 
@@ -9,5 +9,7 @@
         public string Description { get; set; } = string.Empty;
 
         public decimal Price { get; set; }
+
+        public string SKU { get; set; }
     }
 }

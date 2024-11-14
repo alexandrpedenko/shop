@@ -5,27 +5,22 @@ namespace Shop.Domain.Products
     public sealed class Product
     {
         public int Id { get; private set; }
-        public Title _title;
-        public Description _description;
-        public Price _price;
-        public SKU _sku;
+        public Title Title { get; }
+        public Description Description { get; }
+        public Price Price { get; }
+        public SKU SKU { get; }
 
-        public string Title => _title.Value;
-        public string Description => _description.Value;
-        public decimal Price => _price.Value;
-        public string SKU => _sku.Value;
-
-        public Product(string title, string description, decimal price, string sku)
+        public Product(Title title, Description description, Price price, SKU sku)
         {
             ArgumentNullException.ThrowIfNull(title);
             ArgumentNullException.ThrowIfNull(description);
             ArgumentNullException.ThrowIfNull(price);
             ArgumentNullException.ThrowIfNull(sku);
 
-            _title = new Title(title);
-            _description = new Description(description);
-            _price = new Price(price);
-            _sku = new SKU(sku);
+            Title = title;
+            Description = description;
+            Price = price;
+            SKU = sku;
         }
     }
 }

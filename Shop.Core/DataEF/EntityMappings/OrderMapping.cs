@@ -21,6 +21,10 @@ namespace Shop.Core.DataEF.EntityMappings
                    .WithOne(ol => ol.Order)
                    .HasForeignKey(ol => ol.OrderId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Property(o => o.TotalPrice)
+                   .IsRequired()
+                   .HasColumnType("decimal(18,2)");
         }
     }
 }

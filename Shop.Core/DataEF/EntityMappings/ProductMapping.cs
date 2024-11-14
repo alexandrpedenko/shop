@@ -34,9 +34,6 @@ namespace Shop.Core.DataEF.EntityMappings
                    .HasMaxLength(50)
                    .HasColumnName("SKU");
 
-            builder.HasIndex(p => p.SKU)
-                   .IsUnique();
-
             builder.HasAlternateKey(p => p.SKU);
         }
     }

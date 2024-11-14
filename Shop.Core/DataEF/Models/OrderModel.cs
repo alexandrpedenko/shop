@@ -6,6 +6,8 @@ public class OrderModel
 
     public DateTime OrderDate { get; set; }
 
+    public decimal TotalPrice { get; set; }
+
     public required ICollection<OrderLineModel> OrderLines { get; set; } = new List<OrderLineModel>();
 }
 

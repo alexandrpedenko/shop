@@ -13,5 +13,7 @@ public readonly record struct Price
 
         Value = value;
     }
+
+    public static implicit operator decimal(Price price) => price.Value;
 }
 
