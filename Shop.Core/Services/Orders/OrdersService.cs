@@ -1,8 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Shop.Core.DataEF;
 using Shop.Core.DataEF.Models;
+using Shop.Core.DTOs.Orders;
 using Shop.Core.Helpers.OperationResult;
+using Shop.Domain.Common;
 using Shop.Domain.Orders;
+using Shop.Domain.Services;
 
 namespace Shop.Core.Services.Orders
 {
@@ -10,67 +13,103 @@ namespace Shop.Core.Services.Orders
     {
         private readonly ShopContext _context = context;
 
-        public async Task<OperationResult<int>> CreateOrderAsync(Order order)
+        private const string failingError = "An error occurred while creating the order.";
+
+        public async Task<OperationResult<int>> CreateOrderAsync(CreateOrderDto createOrderRequest)
         {
-            if (order.OrderLines.Count == 0)
+            var orderResult = await PrepareOrderPayload(createOrderRequest);
+
+            if (orderResult.ErrorMessage != null)
             {
-                return OperationResult<int>.Failure("Order must contain at least one product", OperationErrorType.Validation);
+                return OperationResult<int>.Failure(orderResult.ErrorMessage, orderResult.ErrorType);
             }
 
-            var productSKUs = order.OrderLines.Select(ol => ol.ProductSKU).ToList();
-            var existingProducts = await _context.Products
-                .Where(p => productSKUs.Contains(p.SKU))
-                .Select(p => new
-                {
-                    p.SKU,
-                    p.Price,
-                    p.Id
-                })
-                .ToDictionaryAsync(p => p.SKU, p => new { p.Price, p.Id });
-
-            if (existingProducts.Count != productSKUs.Count)
+            if (orderResult.Value == null)
             {
-                var missingProductSKUs = productSKUs.Except(existingProducts.Keys).ToList();
-
-                return OperationResult<int>.Failure(
-                    $"Products with SKUs {string.Join(", ", missingProductSKUs)} not found.",
-                    OperationErrorType.NotFound);
-            }
-
-            foreach (var orderLine in order.OrderLines)
-            {
-                var price = existingProducts[orderLine.ProductSKU].Price;
-                orderLine.SetPrice(price);
+                return OperationResult<int>.Failure(failingError, OperationErrorType.Unexpected);
             }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                OrderModel orderModel = new()
-                {
-                    OrderDate = order.OrderDate,
-                    OrderLines = order.OrderLines.Select(ol => new OrderLineModel
-                    {
-                        ProductSKU = ol.ProductSKU,
-                        Quantity = ol.Quantity,
-                        Price = ol.Price,
-                        ProductId = existingProducts[ol.ProductSKU].Id
-                    }).ToList()
-                };
-
+                var orderModel = MapOrderToOrderModel(orderResult.Value);
                 _context.Orders.Add(orderModel);
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
-
                 return OperationResult<int>.Success(orderModel.Id);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Console.WriteLine(ex);
                 await transaction.RollbackAsync();
-                return OperationResult<int>.Failure("An error occurred while creating the order.", OperationErrorType.Unexpected);
+                return OperationResult<int>.Failure(failingError, OperationErrorType.Unexpected);
             }
+        }
+
+        private async Task<OperationResult<Order>> PrepareOrderPayload(CreateOrderDto createOrderRequest)
+        {
+            var productSKUs = createOrderRequest.Products.Select(ol => ol.ProductSKU).Distinct().ToList();
+            var existingProducts = await FetchExistingProducts(productSKUs);
+
+            if (existingProducts.Count != productSKUs.Count)
+            {
+                var missingProductSKUs = productSKUs.Except(existingProducts.Keys).ToList();
+                var errorMessage = $"Products with SKUs {string.Join(", ", missingProductSKUs)} not found.";
+                return OperationResult<Order>.Failure(errorMessage, OperationErrorType.NotFound);
+            }
+
+            var orderLines = createOrderRequest.Products.Select(p => new OrderLine(
+                productSKU: new SKU(p.ProductSKU),
+                quantity: new Quantity(p.Quantity),
+                price: new Price(existingProducts[p.ProductSKU].Price),
+                productId: existingProducts[p.ProductSKU].Id
+                )).ToArray();
+
+            var order = OrderDomainService.Create(DateTime.UtcNow, orderLines);
+
+            return OperationResult<Order>.Success(order);
+        }
+
+        private async Task<Dictionary<string, ProductForLine>> FetchExistingProducts(IEnumerable<string> productSKUs)
+        {
+            return await _context.Products
+                .Where(p => productSKUs.Contains(p.SKU))
+                .Select(p => new ProductForLine
+                {
+                    SKU = p.SKU,
+                    Price = p.Price,
+                    Id = p.Id
+                })
+                .ToDictionaryAsync(p => p.SKU);
+        }
+
+        private async Task<Dictionary<string, ProductForLine>> FetchExistingProducts(CreateOrderDto createOrderRequest)
+        {
+            var productSKUs = createOrderRequest.Products.Select(p => p.ProductSKU).Distinct().ToList();
+            return await FetchExistingProducts(productSKUs);
+        }
+
+        private static OrderModel MapOrderToOrderModel(Order order)
+        {
+            return new OrderModel
+            {
+                OrderDate = order.OrderDate,
+                OrderLines = order.OrderLines.Select(ol => new OrderLineModel
+                {
+                    ProductSKU = ol.ProductSKU,
+                    Quantity = ol.Quantity,
+                    Price = ol.Price,
+                    ProductId = ol.ProductId,
+                }).ToList()
+            };
+        }
+
+        private record ProductForLine
+        {
+            public string SKU { get; init; }
+            public decimal Price { get; init; }
+            public int Id { get; init; }
         }
     }
 

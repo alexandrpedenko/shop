@@ -18,5 +18,7 @@
 
             Value = value;
         }
+
+        public static implicit operator string(SKU title) => title.Value;
     }
 }

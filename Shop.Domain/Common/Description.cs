@@ -14,5 +14,7 @@
 
             Value = value;
         }
+
+        public static implicit operator string(Description description) => description.Value;
     }
 }

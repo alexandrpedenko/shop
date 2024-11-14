@@ -28,9 +28,7 @@ namespace Shop.Core.Services.Products
 
         public async Task<bool> CheckIfExistBySkuAsync(string sku)
         {
-            var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.SKU == sku);
-
-            return product == null ? false : true;
+            return await _dbContext.Products.AnyAsync(p => p.SKU == sku);
         }
     }
 }

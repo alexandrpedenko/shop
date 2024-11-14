@@ -12,8 +12,8 @@ using Shop.Core.DataEF;
 namespace Shop.Core.Migrations
 {
     [DbContext(typeof(ShopContext))]
-    [Migration("20241111080653_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20241114141308_InitialMigrations")]
+    partial class InitialMigrations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -69,6 +69,9 @@ namespace Shop.Core.Migrations
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Orders");
@@ -106,9 +109,6 @@ namespace Shop.Core.Migrations
                     b.HasKey("Id");
 
                     b.HasAlternateKey("SKU");
-
-                    b.HasIndex("SKU")
-                        .IsUnique();
 
                     b.ToTable("Products");
                 });

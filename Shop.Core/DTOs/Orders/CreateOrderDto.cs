@@ -1,11 +1,9 @@
-﻿using Shop.Core.DTOs.Orders;
-
-namespace Shop.API.Contracts.Requests.Orders
+﻿namespace Shop.Core.DTOs.Orders
 {
     /// <summary>
     /// Create order request
     /// </summary>
-    public sealed class CreateOrderRequestDto
+    public sealed class CreateOrderDto
     {
         /// <summary>
         /// List of product's ids

@@ -1,6 +1,6 @@
 ﻿namespace Shop.Domain.Orders
 {
-    public sealed class Order(DateTime orderDate)
+    public sealed class Order(DateTime orderDate, IReadOnlyCollection<OrderLine> orderLines)
     {
         private readonly List<OrderLine> _orderLines = [];
 
@@ -8,11 +8,8 @@
 
         public DateTime OrderDate { get; private set; } = orderDate;
 
-        public IReadOnlyCollection<OrderLine> OrderLines => _orderLines;
+        public IReadOnlyCollection<OrderLine> OrderLines { get; private set; } = orderLines;
 
-        public void AddOrderLine(OrderLine newOrderLine)
-        {
-            _orderLines.Add(newOrderLine);
-        }
+        public decimal TotalPrice => _orderLines.Sum(line => line.Price.Value * line.Quantity.Value);
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Shop.API.Contracts.Requests.Orders
+﻿namespace Shop.Core.DTOs.Orders
 {
     /// <summary>
     /// Product for order

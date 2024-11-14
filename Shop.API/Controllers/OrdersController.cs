@@ -1,10 +1,10 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Shop.API.Contracts.Requests.Orders;
+using Shop.Core.DTOs.Orders;
 using Shop.Core.Exceptions.Common;
 using Shop.Core.Helpers.OperationResult;
 using Shop.Core.Services.Orders;
-using Shop.Domain.Orders;
 
 namespace Shop.API.Controllers
 {
@@ -30,15 +30,17 @@ namespace Shop.API.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequestDto orderRequest)
         {
-            var order = new Order(DateTime.UtcNow);
-
-            foreach (var request in orderRequest.Products)
+            if (orderRequest.Products.Count == 0)
             {
-                var orderLine = new OrderLine(request.ProductSKU, request.Quantity);
-                order.AddOrderLine(orderLine);
+                return BadRequest("Order must contain at least one product");
             }
 
-            var result = await _orderService.CreateOrderAsync(order);
+            CreateOrderDto orderDto = new()
+            {
+                Products = orderRequest.Products,
+            };
+
+            var result = await _orderService.CreateOrderAsync(orderDto);
 
             if (!result.IsSuccess)
             {

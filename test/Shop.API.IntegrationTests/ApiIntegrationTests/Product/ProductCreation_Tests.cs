@@ -1,10 +1,13 @@
 ﻿using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Shop.API.Contracts.Responses.Products;
 using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
 using System.Net.Http.Json;
 
 namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
 {
+    [Collection("Database Tests")]
     public sealed class ProductCreation_Tests
         (CustomWebApplicationFactory<Program> factory)
         : ApiTestsBase(factory)
@@ -24,13 +27,15 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         [Fact]
         public async Task Product_Created_WithValidData()
         {
-            var protuctToCreate = Product;
+            var productToCreate = Product;
 
-            var response = await _client.PostAsJsonAsync("/api/v1/products", protuctToCreate);
+            var response = await _client.PostAsJsonAsync("/api/v1/products", productToCreate);
 
             response.EnsureSuccessStatusCode();
-            var createdProduct = await response.Content.ReadFromJsonAsync<ProductModel>();
-            createdProduct.Should().BeEquivalentTo(protuctToCreate);
+            var createdProduct = await response.Content.ReadFromJsonAsync<GetProductResponseDto>();
+            createdProduct.Should().BeEquivalentTo(productToCreate);
+
+            await VerifyProductInDatabase(createdProduct.Id, productToCreate);
         }
 
         [Fact]
@@ -112,18 +117,18 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
                 .WithErrors($"SKU cannot exceed {SkuMaxLength} characters");
         }
 
-        //[Fact]
-        //public async Task Product_CreationFails_WithDuplicateSKU()
-        //{
-        //    SeedDatabaseWithProducts();
+        [Fact]
+        public async Task Product_CreationFails_WithDuplicateSKU()
+        {
+            SeedDatabaseWithProducts();
 
-        //    var duplicateSkuProduct = Product;
+            var duplicateSkuProduct = Product;
 
-        //    var response = await _client.PostAsJsonAsync("/api/v1/products", duplicateSkuProduct);
+            var response = await _client.PostAsJsonAsync("/api/v1/products", duplicateSkuProduct);
 
-        //    response.ShouldFail()
-        //        .WithErrors($"SKU '{duplicateSkuProduct.SKU}' must be unique.");
-        //}
+            response.ShouldFail()
+                .WithErrors($"SKU '{duplicateSkuProduct.SKU}' must be unique.");
+        }
 
         [Theory]
         [InlineData(null)]
@@ -152,7 +157,22 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
                         Price = 15.0m
                     },
                 ]);
+                context.SaveChanges();
             });
+        }
+
+        private async Task VerifyProductInDatabase(int productId, TestProduct expectedProduct)
+        {
+            using var context = GetDbContext();
+
+            var productInDb = await context.Products.SingleOrDefaultAsync(p => p.Id == productId);
+
+            productInDb.Should().NotBeNull();
+
+            productInDb!.Title.Should().Be(expectedProduct.Title);
+            productInDb.Description.Should().Be(expectedProduct.Description);
+            productInDb.Price.Should().Be(expectedProduct.Price);
+            productInDb.SKU.Should().Be(expectedProduct.SKU);
         }
 
         private static string GetStringOverTheLimit(int maxLimit)

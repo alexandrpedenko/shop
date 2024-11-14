@@ -51,6 +51,7 @@ public sealed class CustomWebApplicationFactory<TStartup> : WebApplicationFactor
         context.Database.ExecuteSqlRaw("DELETE FROM OrderLines");
         context.Database.ExecuteSqlRaw("DELETE FROM Orders");
         context.Database.ExecuteSqlRaw("DELETE FROM Products");
+        context.SaveChanges();
     }
 
     public void SeedDatabase(Action<ShopContext> seedAction)
@@ -63,6 +64,7 @@ public sealed class CustomWebApplicationFactory<TStartup> : WebApplicationFactor
     }
 }
 
+[CollectionDefinition("Database Tests", DisableParallelization = true)]
 public abstract class ApiTestsBase : IClassFixture<CustomWebApplicationFactory<Program>>, IAsyncLifetime
 {
     protected readonly HttpClient _client;
@@ -74,18 +76,31 @@ public abstract class ApiTestsBase : IClassFixture<CustomWebApplicationFactory<P
         _client = factory.CreateClient();
     }
 
+    protected ShopContext GetDbContext()
+    {
+        var scope = _factory.Services.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<ShopContext>();
+    }
+
+    protected void ClearTables()
+    {
+        _factory.ClearTables();
+    }
+
     public async Task InitializeAsync()
     {
         await Task.Run(() => _factory.ApplyMigrations());
+        await Task.Run(() => ClearTables());
     }
 
     protected void InitializeDatabase(Action<ShopContext> seedAction)
     {
+        ClearTables();
         _factory.SeedDatabase(seedAction);
     }
 
     public async Task DisposeAsync()
     {
-        await Task.Run(() => _factory.ClearTables());
+        await Task.Run(() => ClearTables());
     }
 }
