@@ -41,7 +41,6 @@ namespace Shop.Core.Services.Orders
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
                 await transaction.RollbackAsync();
                 return OperationResult<int>.Failure(failingError, OperationErrorType.Unexpected);
             }
