@@ -20,5 +20,6 @@
         }
 
         public static implicit operator string(SKU title) => title.Value;
+        public static implicit operator SKU(string value) => new(value);
     }
 }

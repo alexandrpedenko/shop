@@ -1,5 +1,5 @@
-SKU,Price,Title,Description
+SKU,Price,Title
 testSKU1,45.99,Updated Product 1,Updated Description 1
-invalidProductSKUForUpdate,99.99,Updated Product 2,Updated Description 2
+testSKU2,99.99,Updated Product 2,Updated Description 2
 newSKU1,25.00,New Product 1,New Product Description
 newSKU2,35.50,New Product 2,New Product Description

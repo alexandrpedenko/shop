@@ -22,5 +22,6 @@ public readonly record struct Quantity
     }
 
     public static implicit operator int(Quantity price) => price.Value;
+    public static implicit operator Quantity(int value) => new(value);
 }
 

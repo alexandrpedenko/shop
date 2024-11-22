@@ -1,3 +1,3 @@
 SKU,Price,Title,Description
 testSKU1,45.99,Updated Product 1,Updated Description 1
-invalidSKU,99.99,Updated Product 2,Updated Description 2
+testSKU2,99.99,Updated Product 2

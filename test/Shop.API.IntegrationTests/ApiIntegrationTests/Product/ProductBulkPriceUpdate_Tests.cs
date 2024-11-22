@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
-using System.Net;
 using System.Net.Http.Json;
 
 namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
@@ -13,8 +12,6 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         (CustomWebApplicationFactory<Program> factory)
         : ApiTestsBase(factory)
     {
-        private const string invalidSKU = "invalidSKU";
-
         [Fact]
         public async Task ProductBulkPriceUpdate_Succeeds_WhenAllSkusMatch()
         {
@@ -31,10 +28,9 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
             response.EnsureSuccessStatusCode();
 
             var responseData = await response.Content.ReadFromJsonAsync<BulkUpdateResponse>();
-            responseData.UpdatedCount.Should().Be(3);
+            responseData.UpdatedCount.Should().Be(4);
 
-            // Verify database state
-            await VerifyDatabaseState();
+            await VerifySuccessfulInsertAndUpdate();
         }
 
         [Fact]
@@ -54,28 +50,12 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         }
 
         [Fact]
-        public async Task ProductBulkPriceUpdate_Fails_WhenInvalidCsvFormat()
-        {
-            // Arrange
-            SeedDatabaseWithProducts();
-            var invalidCsvPath = GetCsvFilePath("invalid_format.csv");
-            using var content = GetFileFormContent(invalidCsvPath);
-
-            // Act
-            var response = await _client.PostAsync("/api/v1/products/update-prices", content);
-
-            // Assert
-            response.ShouldFail()
-                .WithErrors("Invalid CSV format");
-        }
-
-        [Fact]
-        public async Task ProductBulkPriceUpdate_Fails_WhenSkusDoNotMatch()
+        public async Task ProductBulkPriceUpdate_Fails_WhenMissedField()
         {
             // Arrange
             SeedDatabaseWithProducts();
 
-            var csvFilePath = GetCsvFilePath("products_with_invalid_sku.csv");
+            var csvFilePath = GetCsvFilePath("products_with_missed_field.csv");
 
             using var content = GetFileFormContent(csvFilePath);
 
@@ -84,7 +64,23 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
 
             // Assert
             response.ShouldFail()
-                .WithErrors($"Products with SKUs {invalidSKU} not found.");
+                .WithErrors("CSV parsing error: Field at index '3' does not exist");
+        }
+
+        [Fact]
+        public async Task ProductBulkPriceUpdate_Fails_WhenMissedHeader()
+        {
+            // Arrange
+            SeedDatabaseWithProducts();
+            var invalidCsvPath = GetCsvFilePath("products_with_missed_header.csv");
+            using var content = GetFileFormContent(invalidCsvPath);
+
+            // Act
+            var response = await _client.PostAsync("/api/v1/products/update-prices", content);
+
+            // Assert
+            response.ShouldFail()
+                .WithErrors("CSV parsing error: Header with name 'Description'[0] was not found");
         }
 
         [Fact]
@@ -102,27 +98,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
 
             // Assert
             response.ShouldFail()
-                .WithErrors("Products with SKUs testSKU1 have negative prices.");
-        }
-
-        [Fact]
-        public async Task ProductBulkPriceUpdate_Fails_AndRollsBackOnError()
-        {
-            // Arrange
-            SeedDatabaseWithProductsForTransAction();
-
-            var csvFilePath = GetCsvFilePath("products_with_transaction_error.csv");
-
-            using var content = GetFileFormContent(csvFilePath);
-
-            // Act
-            var response = await _client.PostAsync("/api/v1/products/update-prices", content);
-
-            // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
-
-            // Verify database state remains unchanged
-            await VerifyDatabaseStateUnchanged();
+                .WithErrors("Price must be greater than zero");
         }
 
         private void SeedDatabaseWithProducts()
@@ -149,17 +125,20 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
             });
         }
 
-        private async Task VerifyDatabaseState()
+        private async Task VerifySuccessfulInsertAndUpdate()
         {
             using var context = GetDbContext();
 
             var product1 = await context.Products.SingleAsync(p => p.SKU == "testSKU1");
-            var product2 = await context.Products.SingleAsync(p => p.SKU == "testSKU2");
-            var product3 = await context.Products.SingleAsync(p => p.SKU == "testSKU3");
-
             product1.Price.Should().Be(45.99m);
+            product1.Title.Should().Be("Updated Product 1");
+
+            var product2 = await context.Products.SingleAsync(p => p.SKU == "testSKU2");
             product2.Price.Should().Be(99.99m);
-            product3.Price.Should().Be(10.50m);
+
+            var newProduct1 = await context.Products.SingleAsync(p => p.SKU == "newSKU1");
+            newProduct1.Title.Should().Be("New Product 1");
+            newProduct1.Price.Should().Be(25.00m);
         }
 
         private async Task VerifyDatabaseStateUnchanged()

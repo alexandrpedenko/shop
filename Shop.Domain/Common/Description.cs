@@ -16,5 +16,6 @@
         }
 
         public static implicit operator string(Description description) => description.Value;
+        public static implicit operator Description(string value) => new(value);
     }
 }
