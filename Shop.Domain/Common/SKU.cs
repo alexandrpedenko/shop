@@ -1,6 +1,6 @@
 ﻿namespace Shop.Domain.Common
 {
-    public class SKU
+    public readonly record struct SKU
     {
         public string Value { get; }
 

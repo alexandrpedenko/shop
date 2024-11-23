@@ -1,6 +1,6 @@
 ﻿namespace Shop.Domain.Common
 {
-    public class Description
+    public readonly record struct Description
     {
         public string Value { get; }
 

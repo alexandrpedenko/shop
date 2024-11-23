@@ -3,7 +3,6 @@ using Shop.Core.DataEF;
 using Shop.Core.DataEF.Models;
 using Shop.Core.DTOs.Orders;
 using Shop.Core.Helpers.OperationResult;
-using Shop.Domain.Common;
 using Shop.Domain.Orders;
 using Shop.Domain.Services;
 
@@ -46,6 +45,43 @@ namespace Shop.Core.Services.Orders
             }
         }
 
+        public async Task<OperationResult<Order>> ApplyDiscountAsync(int orderId, decimal discountPercentage)
+        {
+            var orderModel = await _context.Orders
+                .Include(o => o.OrderLines)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (orderModel == null)
+            {
+                return OperationResult<Order>.Failure($"Order with ID {orderId} not found.", OperationErrorType.NotFound);
+            }
+
+            var order = new Order(
+                orderDate: orderModel.OrderDate,
+                orderLines: orderModel.OrderLines.Select(ol => new OrderLine(
+                    ProductSKU: ol.ProductSKU,
+                    Quantity: ol.Quantity,
+                    Price: ol.Price,
+                    ProductId: ol.ProductId)).ToHashSet()
+            );
+
+            OrderDiscountService.ApplyDiscount(order, discountPercentage);
+
+            try
+            {
+                orderModel.DiscountPercentage = order.DiscountPercentage;
+                orderModel.TotalPrice = order.TotalPrice;
+
+                var result = await _context.SaveChangesAsync();
+
+                return OperationResult<Order>.Success(order);
+            }
+            catch (Exception ex)
+            {
+                return OperationResult<Order>.Failure($"Failed to apply discount: {ex.Message}", OperationErrorType.Unexpected);
+            }
+        }
+
         private async Task<OperationResult<Order>> PrepareOrderPayload(CreateOrderDto createOrderRequest)
         {
             var productSKUs = createOrderRequest.Products.Select(ol => ol.ProductSKU).Distinct().ToList();
@@ -59,11 +95,11 @@ namespace Shop.Core.Services.Orders
             }
 
             var orderLines = createOrderRequest.Products.Select(p => new OrderLine(
-                productSKU: new SKU(p.ProductSKU),
-                quantity: new Quantity(p.Quantity),
-                price: new Price(existingProducts[p.ProductSKU].Price),
-                productId: existingProducts[p.ProductSKU].Id
-                )).ToArray();
+                    ProductSKU: p.ProductSKU,
+                    Quantity: p.Quantity,
+                    Price: existingProducts[p.ProductSKU].Price,
+                    ProductId: existingProducts[p.ProductSKU].Id
+                    )).ToArray();
 
             var order = OrderDomainService.Create(DateTime.UtcNow, orderLines);
 

@@ -2,16 +2,11 @@
 
 namespace Shop.Domain.Orders
 {
-    public sealed class OrderLine(SKU productSKU, Quantity quantity, Price price, int productId)
+    public readonly record struct OrderLine(SKU ProductSKU, Quantity Quantity, Price Price, int ProductId)
     {
-        public int Id { get; private set; }
-
-        public int ProductId { get; private set; } = productId;
-
-        public Price Price { get; private set; } = price;
-
-        public SKU ProductSKU { get; private set; } = productSKU;
-
-        public Quantity Quantity { get; private set; } = quantity;
+        public readonly int ProductId = ProductId;
+        public readonly Price Price = Price;
+        public readonly SKU ProductSKU = ProductSKU;
+        public readonly Quantity Quantity = Quantity;
     }
 }

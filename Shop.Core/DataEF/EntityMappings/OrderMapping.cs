@@ -25,6 +25,11 @@ namespace Shop.Core.DataEF.EntityMappings
             builder.Property(o => o.TotalPrice)
                    .IsRequired()
                    .HasColumnType("decimal(18,2)");
+
+            builder.Property(o => o.DiscountPercentage)
+                   .IsRequired()
+                   .HasColumnType("decimal(5,2)")
+                   .HasDefaultValue(0);
         }
     }
 }

@@ -74,7 +74,7 @@ namespace Shop.API.Controllers
                 return BadRequest("File is empty");
 
             var parsedProductsResult = await _productService.ParseCsvAsync(file);
-            var parsedProductsError = HandleOperationResultForAction(parsedProductsResult);
+            var parsedProductsError = parsedProductsResult.CheckForAction();
 
             if (parsedProductsError != null)
             {
@@ -87,7 +87,7 @@ namespace Shop.API.Controllers
             }
 
             var updatedCount = await _productService.BulkUpdateAsync(parsedProductsResult.Value);
-            var updateProductError = HandleOperationResultForAction(updatedCount);
+            var updateProductError = updatedCount.CheckForAction();
 
             if (updateProductError != null)
             {
@@ -96,22 +96,5 @@ namespace Shop.API.Controllers
 
             return Ok(new { UpdatedCount = updatedCount.Value });
         }
-
-        // TODO: Move to the BaseController?
-        private IActionResult? HandleOperationResultForAction<T>(OperationResult<T> result)
-        {
-            if (!result.IsSuccess)
-            {
-                return result.ErrorType switch
-                {
-                    OperationErrorType.NotFound => NotFound(result.ErrorMessage),
-                    OperationErrorType.Validation => BadRequest(result.ErrorMessage),
-                    _ => StatusCode(500, result.ErrorMessage)
-                };
-            }
-
-            return null;
-        }
-
     }
 }
