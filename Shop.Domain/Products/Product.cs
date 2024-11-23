@@ -2,13 +2,14 @@
 
 namespace Shop.Domain.Products
 {
-    public sealed class Product
+    public record struct Product
     {
         public int Id { get; private set; }
-        public Title Title { get; }
-        public Description Description { get; }
-        public Price Price { get; }
-        public SKU SKU { get; }
+
+        public readonly Title Title;
+        public readonly Description Description;
+        public readonly Price Price;
+        public readonly SKU SKU;
 
         public Product(Title title, Description description, Price price, SKU sku)
         {

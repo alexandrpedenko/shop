@@ -8,6 +8,8 @@ public class OrderModel
 
     public decimal TotalPrice { get; set; }
 
+    public decimal DiscountPercentage { get; set; }
+
     public required ICollection<OrderLineModel> OrderLines { get; set; } = new List<OrderLineModel>();
 }
 

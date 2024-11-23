@@ -1,8 +1,11 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using RepoDb;
 using Shop.Core.DataEF;
 using Shop.Core.DataEF.Models;
+using Shop.Core.Extensions;
 using Shop.Core.Helpers.OperationResult;
 using Shop.Domain.Products;
 
@@ -35,85 +38,62 @@ namespace Shop.Core.Services.Products
 
         public async Task<OperationResult<List<ProductPriceUpdateDto>>> ParseCsvAsync(IFormFile file)
         {
-            using var stream = file.OpenReadStream();
-            using var reader = new StreamReader(stream);
-            var updates = new List<ProductPriceUpdateDto>();
-
-            while (!reader.EndOfStream)
-            {
-                var line = await reader.ReadLineAsync();
-                if (string.IsNullOrWhiteSpace(line)) continue;
-
-                var parts = line.Split(',');
-                if (parts.Length != 2)
-                {
-
-                    return OperationResult<List<ProductPriceUpdateDto>>
-                        .Failure("Invalid CSV format", OperationErrorType.Validation);
-                }
-
-                var sku = parts[0].Trim();
-                if (!decimal.TryParse(parts[1].Trim(), out var price))
-                {
-                    return OperationResult<List<ProductPriceUpdateDto>>
-                        .Failure($"Invalid price format for SKU {sku}", OperationErrorType.Validation);
-                }
-
-                updates.Add(new ProductPriceUpdateDto { SKU = sku, Price = price });
-            }
-
-            return OperationResult<List<ProductPriceUpdateDto>>.Success(updates);
-        }
-
-        public async Task<OperationResult<int>> BulkUpdatePricesAsync(IList<ProductPriceUpdateDto> updates)
-        {
-            var SKUs = updates.Distinct().Select(u => u.SKU).ToList();
-
-            var products = await _dbContext.Products
-                .Where(p => SKUs.Contains(p.SKU))
-                .ToDictionaryAsync(p => p.SKU);
-
-            var invalidPriceUpdates = updates.Where(u => u.Price < 0).ToList();
-            if (invalidPriceUpdates.Any())
-            {
-                var invalidSkus = string.Join(", ", invalidPriceUpdates.Select(u => u.SKU));
-                var errorMessage = $"Products with SKUs {invalidSkus} have negative prices.";
-                return OperationResult<int>.Failure(errorMessage, OperationErrorType.Validation);
-            }
-
-            if (products.Count != SKUs.Count)
-            {
-                var missingProductSKUs = SKUs.Except(products.Keys).ToList();
-                var errorMessage = $"Products with SKUs {string.Join(", ", missingProductSKUs)} not found.";
-                return OperationResult<int>.Failure(errorMessage, OperationErrorType.NotFound);
-            }
-
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
-                foreach (var update in updates)
-                {
-                    if (products.TryGetValue(update.SKU, out var product))
-                    {
-                        product.Price = update.Price;
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
 
-                        // NOTE: !Just for transaction testing!
-                        if (update.SKU == "invalidProductSKUForUpdate")
-                        {
-                            throw new InvalidOperationException("Test rollback error");
-                        }
-                    }
-                }
-
-                var savedResult = await _dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return OperationResult<int>.Success(savedResult);
+                var updates = memoryStream.ReadCsv<ProductPriceUpdateDto>().ToList();
+                return OperationResult<List<ProductPriceUpdateDto>>.Success(updates);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                return OperationResult<int>.Failure(ex.Message, OperationErrorType.Unexpected);
+                return OperationResult<List<ProductPriceUpdateDto>>
+                    .Failure($"CSV parsing error: {ex.Message}", OperationErrorType.Validation);
+            }
+        }
+
+        public async Task<OperationResult<int>> BulkUpdateAsync(IList<ProductPriceUpdateDto> updates)
+        {
+            if (updates == null || updates.Count == 0)
+            {
+                return OperationResult<int>.Failure("No updates provided.", OperationErrorType.Validation);
+            }
+
+            var domainProducts = updates.Select(dto =>
+                new Product(
+                    title: dto.Title,
+                    description: dto.Description,
+                    price: dto.Price,
+                    sku: dto.SKU
+                )
+            ).ToList();
+
+            var dbProducts = domainProducts.Select(product => new ProductModel
+            {
+                Title = product.Title,
+                Description = product.Description,
+                Price = product.Price,
+                SKU = product.SKU
+            }).ToList();
+
+            try
+            {
+                using var connection = new SqlConnection(_dbContext.Database.GetConnectionString());
+                await connection.EnsureOpenAsync();
+
+                var mergedRows = await connection.BulkMergeAsync(
+                    tableName: "Products",
+                    entities: dbProducts,
+                    qualifiers: product => new { product.SKU }
+                );
+
+                return OperationResult<int>.Success(mergedRows);
+            }
+            catch (Exception ex)
+            {
+                return OperationResult<int>.Failure($"Error during products update: {ex.Message}", OperationErrorType.Unexpected);
             }
         }
 
@@ -121,6 +101,8 @@ namespace Shop.Core.Services.Products
         {
             public string SKU { get; init; }
             public decimal Price { get; init; }
+            public string Title { get; init; } = default!;
+            public string Description { get; init; } = default!;
         }
     }
 }

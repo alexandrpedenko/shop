@@ -5,7 +5,6 @@ using Shop.API.Contracts.Responses.Products;
 using Shop.Core.Exceptions.Common;
 using Shop.Core.Helpers.OperationResult;
 using Shop.Core.Services.Products;
-using Shop.Domain.Common;
 using Shop.Domain.Products;
 
 namespace Shop.API.Controllers
@@ -38,10 +37,10 @@ namespace Shop.API.Controllers
             }
 
             var product = new Product(
-                title: new Title(request.Title),
-                description: new Description(request.Description),
-                price: new Price(request.Price),
-                sku: new SKU(request.SKU)
+                title: request.Title,
+                description: request.Description,
+                price: request.Price,
+                sku: request.SKU
             );
 
             Product createdProduct = await _productService.CreateProductAsync(product);
@@ -75,7 +74,7 @@ namespace Shop.API.Controllers
                 return BadRequest("File is empty");
 
             var parsedProductsResult = await _productService.ParseCsvAsync(file);
-            var parsedProductsError = HandleOperationResultForAction(parsedProductsResult);
+            var parsedProductsError = parsedProductsResult.CheckForAction();
 
             if (parsedProductsError != null)
             {
@@ -87,8 +86,8 @@ namespace Shop.API.Controllers
                 return StatusCode(500, "Unexpected error during file parsing");
             }
 
-            var updatedCount = await _productService.BulkUpdatePricesAsync(parsedProductsResult.Value);
-            var updateProductError = HandleOperationResultForAction(updatedCount);
+            var updatedCount = await _productService.BulkUpdateAsync(parsedProductsResult.Value);
+            var updateProductError = updatedCount.CheckForAction();
 
             if (updateProductError != null)
             {
@@ -97,22 +96,5 @@ namespace Shop.API.Controllers
 
             return Ok(new { UpdatedCount = updatedCount.Value });
         }
-
-        // TODO: Move to the BaseController?
-        private IActionResult? HandleOperationResultForAction<T>(OperationResult<T> result)
-        {
-            if (!result.IsSuccess)
-            {
-                return result.ErrorType switch
-                {
-                    OperationErrorType.NotFound => NotFound(result.ErrorMessage),
-                    OperationErrorType.Validation => BadRequest(result.ErrorMessage),
-                    _ => StatusCode(500, result.ErrorMessage)
-                };
-            }
-
-            return null;
-        }
-
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using Microsoft.EntityFrameworkCore;
+using RepoDb;
 using Shop.Core.DataEF;
 using Shop.Core.Mapping.ProductProfile;
 using Shop.Core.Services.Orders;
@@ -19,6 +20,10 @@ namespace Shop.API.Extensions
         /// </summary>
         public static IServiceCollection InitServices(this IServiceCollection services, ConfigurationManager config)
         {
+            GlobalConfiguration
+                .Setup()
+                .UseSqlServer();
+
             AddSwagger(services);
             AddApiVersioning(services);
             AddDbContext(services, config);

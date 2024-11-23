@@ -1,6 +1,6 @@
 ﻿namespace Shop.Domain.Common
 {
-    public class Description
+    public readonly record struct Description
     {
         public string Value { get; }
 
@@ -16,5 +16,6 @@
         }
 
         public static implicit operator string(Description description) => description.Value;
+        public static implicit operator Description(string value) => new(value);
     }
 }
