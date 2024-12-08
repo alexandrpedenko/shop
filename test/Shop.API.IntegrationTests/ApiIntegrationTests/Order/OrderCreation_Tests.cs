@@ -1,11 +1,14 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Shop.API.Contracts.Requests.Orders;
 using Shop.API.IntegrationTests.ApiIntegrationTests.Product;
 using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
 using Shop.Core.DTOs.Orders;
+using StackExchange.Redis;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
 {
@@ -17,6 +20,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         private const string InvalidProductSKU = "notExistingSKU";
         private const int MinQuantity = 1;
         private const int MaxQuantity = 100;
+        private const string TestChannel = "order_channel";
 
         private readonly CreateOrderRequestDto InvalidOrderRequest = new()
         {
@@ -45,6 +49,41 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
             createdOrderId!.Id.Should().BeGreaterThan(0);
 
             await VerifyOrderInDatabase(createdOrderId!.Id, validRequest);
+        }
+
+        [Fact]
+        public async Task CreateOrder_ShouldPublishMessageToRedis()
+        {
+            SeedDatabaseWithProducts();
+            CreateOrderRequestDto validRequest = CreateOrderRequest(1);
+
+            // Arrange
+            var redis = _factory.Services.GetRequiredService<IConnectionMultiplexer>();
+            var subscriber = redis.GetSubscriber();
+
+            string receivedMessage = null;
+            var messageReceived = new TaskCompletionSource<bool>();
+
+            await subscriber.SubscribeAsync(TestChannel, (channel, message) =>
+            {
+                receivedMessage = message;
+                messageReceived.SetResult(true);
+            });
+
+            // Act
+            var response = await _client.PostAsJsonAsync("/api/v1/orders", validRequest);
+            response.EnsureSuccessStatusCode();
+
+            // Wait for the message
+            var messageWasReceived = await messageReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            // Assert
+            messageWasReceived.Should().BeTrue();
+            receivedMessage.Should().NotBeNull();
+
+            var publishedMessage = JsonSerializer.Deserialize<OrderMessage>(receivedMessage);
+            publishedMessage.Should().NotBeNull();
+            publishedMessage!.OrderId.Should().BeGreaterThan(0);
         }
 
         [Fact]
@@ -148,5 +187,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         {
             public int Id { get; set; }
         }
+
+        public record OrderMessage(int OrderId, DateTime Timestamp);
     }
 }

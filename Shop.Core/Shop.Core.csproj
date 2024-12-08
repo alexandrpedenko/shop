@@ -17,6 +17,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="RepoDb.SqlServer.BulkOperations" Version="1.13.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.22" />
   </ItemGroup>
 
   <ItemGroup>

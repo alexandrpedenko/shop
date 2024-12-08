@@ -5,7 +5,9 @@ using Shop.Core.DataEF;
 using Shop.Core.Mapping.ProductProfile;
 using Shop.Core.Services.Orders;
 using Shop.Core.Services.Products;
+using Shop.Core.Services.Redis;
 using Shop.Core.Validators.Attributes;
+using StackExchange.Redis;
 using System.Reflection;
 
 namespace Shop.API.Extensions
@@ -24,6 +26,7 @@ namespace Shop.API.Extensions
                 .Setup()
                 .UseSqlServer();
 
+            AddRedis(services, config);
             AddSwagger(services);
             AddApiVersioning(services);
             AddDbContext(services, config);
@@ -68,8 +71,17 @@ namespace Shop.API.Extensions
 
         public static IServiceCollection AddServices(this IServiceCollection services)
         {
+            services.AddTransient<RedisPublisher>();
             services.AddTransient<ProductService>();
             services.AddTransient<OrdersService>();
+
+            return services;
+        }
+
+        public static IServiceCollection AddRedis(this IServiceCollection services, ConfigurationManager config)
+        {
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
+                ConnectionMultiplexer.Connect($"{config["Redis:Host"]}:{config["Redis:Port"]}"));
 
             return services;
         }

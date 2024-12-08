@@ -3,14 +3,17 @@ using Shop.Core.DataEF;
 using Shop.Core.DataEF.Models;
 using Shop.Core.DTOs.Orders;
 using Shop.Core.Helpers.OperationResult;
+using Shop.Core.Services.Redis;
 using Shop.Domain.Orders;
 using Shop.Domain.Services;
+using System.Text.Json;
 
 namespace Shop.Core.Services.Orders
 {
-    public sealed class OrdersService(ShopContext context)
+    public sealed class OrdersService(ShopContext context, RedisPublisher redisPublisher)
     {
         private readonly ShopContext _context = context;
+        private readonly RedisPublisher _redisPublisher = redisPublisher;
 
         private const string failingError = "An error occurred while creating the order.";
 
@@ -36,12 +39,16 @@ namespace Shop.Core.Services.Orders
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
+
+                var message = JsonSerializer.Serialize(new { OrderId = orderModel.Id, Timestamp = DateTime.UtcNow });
+                await _redisPublisher.PublishAsync("order_channel", message);
+
                 return OperationResult<int>.Success(orderModel.Id);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                return OperationResult<int>.Failure(failingError, OperationErrorType.Unexpected);
+                return OperationResult<int>.Failure($"{failingError}: {ex.Message}", OperationErrorType.Unexpected);
             }
         }
 
