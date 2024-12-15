@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
+using System.Net;
 using System.Net.Http.Json;
 
 namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
@@ -33,6 +34,22 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
             responseData.UpdatedCount.Should().Be(4);
 
             await VerifySuccessfulInsertAndUpdate();
+        }
+
+        [Fact]
+        public async Task ProductBulkPriceUpdate_Fails_WhenUserIsNotAuthorized()
+        {
+            // Arrange
+            SeedDatabaseWithProducts();
+            var csvFilePath = GetCsvFilePath("products.csv");
+
+            using var content = GetFileFormContent(csvFilePath);
+
+            // Act
+            var response = await _client.PostAsync("/api/v1/products/update-prices", content);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         }
 
         [Fact]

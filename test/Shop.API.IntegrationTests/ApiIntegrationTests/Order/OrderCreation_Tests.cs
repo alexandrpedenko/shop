@@ -7,6 +7,7 @@ using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
 using Shop.Core.DTOs.Orders;
 using StackExchange.Redis;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -50,6 +51,20 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
             createdOrderId!.Id.Should().BeGreaterThan(0);
 
             await VerifyOrderInDatabase(createdOrderId!.Id, validRequest);
+        }
+
+        [Fact]
+        public async Task CreateOrder_Fails_WhenUserIsNotAuthorized()
+        {
+            // Arrange
+            SeedDatabaseWithProducts();
+            CreateOrderRequestDto validRequest = CreateOrderRequest(1);
+
+            // Act
+            var response = await _client.PostAsJsonAsync("/api/v1/orders", validRequest);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         }
 
         [Fact]

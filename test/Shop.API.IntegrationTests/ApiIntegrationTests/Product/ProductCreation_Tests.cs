@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Shop.API.Contracts.Responses.Products;
 using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
+using System.Net;
 using System.Net.Http.Json;
 
 namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
@@ -38,6 +39,17 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
             createdProduct.Should().BeEquivalentTo(productToCreate);
 
             await VerifyProductInDatabase(createdProduct.Id, productToCreate);
+        }
+
+        [Fact]
+        public async Task CreateProduct_Fails_WhenUserIsNotAuthorized()
+        {
+            var productToCreate = Product;
+
+            var response = await _client.PostAsJsonAsync("/api/v1/products", productToCreate);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         }
 
         [Fact]
