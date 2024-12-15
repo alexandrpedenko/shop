@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Shop.API.Contracts.Responses.Products;
 using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
+using System.Net;
 using System.Net.Http.Json;
 
 namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
@@ -27,6 +28,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         [Fact]
         public async Task Product_Created_WithValidData()
         {
+            await AuthorizeAdmin();
+
             var productToCreate = Product;
 
             var response = await _client.PostAsJsonAsync("/api/v1/products", productToCreate);
@@ -39,8 +42,21 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         }
 
         [Fact]
+        public async Task CreateProduct_Fails_WhenUserIsNotAuthorized()
+        {
+            var productToCreate = Product;
+
+            var response = await _client.PostAsJsonAsync("/api/v1/products", productToCreate);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        }
+
+        [Fact]
         public async Task Product_CreationFails_WithNegativePrice()
         {
+            await AuthorizeAdmin();
+
             var invalidProduct = Product with { Price = -1 };
 
             var response = await _client.PostAsJsonAsync("/api/v1/products", invalidProduct);
@@ -52,6 +68,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         [Fact]
         public async Task Product_CreationFails_NameIsTooLong()
         {
+            await AuthorizeAdmin();
+
             var tooLongTitle = GetStringOverTheLimit(TitleMaxLength);
 
             var invalidProduct = Product with { Title = tooLongTitle };
@@ -65,6 +83,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         [Fact]
         public async Task Product_CreationFails_DescriptionIsTooLong()
         {
+            await AuthorizeAdmin();
+
             var tooLongDescription = GetStringOverTheLimit(DescriptionMaxLength);
             var invalidProduct = Product with { Description = tooLongDescription };
 
@@ -82,6 +102,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         [InlineData("\r \t \n")]
         public async Task Product_CreationFails_IfTitle_NulOrEmptyOrWhiteSpaces(string wrongTitle)
         {
+            await AuthorizeAdmin();
+
             var invalidProduct = Product with { Title = wrongTitle };
 
             var response = await _client.PostAsJsonAsync("/api/v1/products", invalidProduct);
@@ -98,6 +120,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         [InlineData("\r \t \n")]
         public async Task Product_CreationFails_IfDescription_NulOrEmptyOrWhiteSpaces(string wrongDescription)
         {
+            await AuthorizeAdmin();
+
             var invalidProduct = Product with { Description = wrongDescription };
 
             var response = await _client.PostAsJsonAsync("/api/v1/products", invalidProduct);
@@ -109,6 +133,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         [Fact]
         public async Task Product_CreationFails_WithSkuTooLong()
         {
+            await AuthorizeAdmin();
+
             var invalidProduct = Product with { SKU = GetStringOverTheLimit(SkuMaxLength + 1) };
 
             var response = await _client.PostAsJsonAsync("/api/v1/products", invalidProduct);
@@ -120,6 +146,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         [Fact]
         public async Task Product_CreationFails_WithDuplicateSKU()
         {
+            await AuthorizeAdmin();
             SeedDatabaseWithProducts();
 
             var duplicateSkuProduct = Product;
@@ -136,6 +163,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         [InlineData(" ")]
         public async Task Product_CreationFails_IfSku_NullOrWhiteSpace(string invalidSku)
         {
+            await AuthorizeAdmin();
+
             var invalidProduct = Product with { SKU = invalidSku };
 
             var response = await _client.PostAsJsonAsync("/api/v1/products", invalidProduct);

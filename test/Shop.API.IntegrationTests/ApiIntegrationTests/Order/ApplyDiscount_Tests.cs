@@ -17,6 +17,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         {
             // Arrange
             SeedDatabaseWithOrders();
+            await AuthorizeAsCustomer();
             int orderId = await GetOrderID();
             var request = new { DiscountPercentage = 10 };
 
@@ -35,8 +36,25 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         }
 
         [Fact]
+        public async Task ApplyDiscount_Fails_WhenUserIsNotAuthorized()
+        {
+            // Arrange
+            SeedDatabaseWithOrders();
+            int orderId = await GetOrderID();
+            var request = new { DiscountPercentage = 10 };
+
+            // Act
+            var response = await _client.PostAsJsonAsync(ApplyDiscountUrl(orderId), request);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        }
+
+        [Fact]
         public async Task ApplyDiscount_Fails_WhenOrderDoesNotExist()
         {
+            await AuthorizeAsCustomer();
+
             // Arrange
             var request = new { DiscountPercentage = 10 };
 
@@ -57,6 +75,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         {
             // Arrange
             SeedDatabaseWithOrders();
+            await AuthorizeAsCustomer();
             int orderId = await GetOrderID();
 
             var request = new { DiscountPercentage = invalidDiscount };

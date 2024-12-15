@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shop.API.Contracts.Requests.Products;
 using Shop.API.Contracts.Responses.Products;
@@ -14,6 +15,7 @@ namespace Shop.API.Controllers
     /// </summary>
     [ApiVersion(1)]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     [Route("api/v{v:apiVersion}/[controller]")]
     public sealed class ProductsController(ProductService productService) : ControllerBase
     {

@@ -7,6 +7,7 @@ using Shop.API.IntegrationTests.Infrastructure;
 using Shop.Core.DataEF.Models;
 using Shop.Core.DTOs.Orders;
 using StackExchange.Redis;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -38,6 +39,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         public async Task Order_Created_WithValidData()
         {
             SeedDatabaseWithProducts();
+            await AuthorizeAsCustomer();
 
             CreateOrderRequestDto validRequest = CreateOrderRequest(1);
 
@@ -52,9 +54,24 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         }
 
         [Fact]
+        public async Task CreateOrder_Fails_WhenUserIsNotAuthorized()
+        {
+            // Arrange
+            SeedDatabaseWithProducts();
+            CreateOrderRequestDto validRequest = CreateOrderRequest(1);
+
+            // Act
+            var response = await _client.PostAsJsonAsync("/api/v1/orders", validRequest);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        }
+
+        [Fact]
         public async Task CreateOrder_ShouldPublishMessageToRedis()
         {
             SeedDatabaseWithProducts();
+            await AuthorizeAsCustomer();
             CreateOrderRequestDto validRequest = CreateOrderRequest(1);
 
             // Arrange
@@ -90,6 +107,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         public async Task Order_CreationFails_WithNonExistentProduct()
         {
             SeedDatabaseWithProducts();
+            await AuthorizeAsCustomer();
 
             var response = await _client.PostAsJsonAsync("/api/v1/orders", InvalidOrderRequest);
 
@@ -101,6 +119,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         public async Task Order_CreationFails_IfQuantity_ZeroOrNegative()
         {
             SeedDatabaseWithProducts();
+            await AuthorizeAsCustomer();
             var invalidRequest = CreateOrderRequest(0);
 
             var response = await _client.PostAsJsonAsync("/api/v1/orders", invalidRequest);
@@ -113,6 +132,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         public async Task Order_CreationFails_IfQuantity_ExceedsMaximum()
         {
             SeedDatabaseWithProducts();
+            await AuthorizeAsCustomer();
+
             var invalidRequest = CreateOrderRequest(MaxQuantity + 1);
 
             var response = await _client.PostAsJsonAsync("/api/v1/orders", invalidRequest);
@@ -125,6 +146,7 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Order
         public async Task Order_CreationFails_IfOrderHasNoItems()
         {
             SeedDatabaseWithProducts();
+            await AuthorizeAsCustomer();
 
             CreateOrderRequestDto emptyOrderItems = new()
             {
