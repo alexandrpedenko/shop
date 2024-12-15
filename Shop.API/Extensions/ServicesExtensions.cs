@@ -1,5 +1,8 @@
 ﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using RepoDb;
 using Shop.Core.DataEF;
 using Shop.Core.Mapping.ProductProfile;
@@ -9,6 +12,7 @@ using Shop.Core.Services.Redis;
 using Shop.Core.Validators.Attributes;
 using StackExchange.Redis;
 using System.Reflection;
+using System.Text;
 
 namespace Shop.API.Extensions
 {
@@ -32,6 +36,8 @@ namespace Shop.API.Extensions
             AddDbContext(services, config);
             AddMapper(services);
             AddServices(services);
+            AddIdentity(services);
+            AddAuthenticationWithJwt(services, config);
 
             services.AddControllers(options =>
             {
@@ -99,6 +105,31 @@ namespace Shop.API.Extensions
                 var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
                 options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+
+                options.AddSecurityDefinition("Bearer", new()
+                {
+                    Name = "Authorization",
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    Description = "Enter 'Bearer' [space] and your token",
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                });
+
+                options.AddSecurityRequirement(new()
+                {
+                    {
+                        new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                        {
+                            Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                            {
+                                Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
             });
         }
 
@@ -115,6 +146,45 @@ namespace Shop.API.Extensions
             {
                 options.GroupNameFormat = "'v'V";
                 options.SubstituteApiVersionInUrl = true;
+            });
+        }
+
+        private static void AddIdentity(IServiceCollection services)
+        {
+            services.AddIdentity<IdentityUser, IdentityRole>(options =>
+            {
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddEntityFrameworkStores<ShopContext>();
+        }
+
+        private static void AddAuthenticationWithJwt(IServiceCollection services, ConfigurationManager config)
+        {
+            var jwtSettings = config.GetSection("JwtSettings");
+            var secretKey = jwtSettings["SecretKey"];
+
+            if (string.IsNullOrWhiteSpace(secretKey))
+            {
+                throw new InvalidOperationException("JWT secret key is not configured in appsettings.");
+            }
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidAudience = jwtSettings["Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+                };
             });
         }
     }

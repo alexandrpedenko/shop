@@ -16,6 +16,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         public async Task ProductBulkPriceUpdate_Succeeds_WhenAllSkusMatch()
         {
             // Arrange
+            await AuthorizeAdmin();
+
             SeedDatabaseWithProducts();
             var csvFilePath = GetCsvFilePath("products.csv");
 
@@ -37,6 +39,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         public async Task ProductBulkPriceUpdate_Fails_WhenFileIsEmpty()
         {
             // Arrange
+            await AuthorizeAdmin();
+
             SeedDatabaseWithProducts();
             var emptyFilePath = GetCsvFilePath("empty.csv");
             using var content = GetFileFormContent(emptyFilePath);
@@ -53,6 +57,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         public async Task ProductBulkPriceUpdate_Fails_WhenMissedField()
         {
             // Arrange
+            await AuthorizeAdmin();
+
             SeedDatabaseWithProducts();
 
             var csvFilePath = GetCsvFilePath("products_with_missed_field.csv");
@@ -71,6 +77,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         public async Task ProductBulkPriceUpdate_Fails_WhenMissedHeader()
         {
             // Arrange
+            await AuthorizeAdmin();
+
             SeedDatabaseWithProducts();
             var invalidCsvPath = GetCsvFilePath("products_with_missed_header.csv");
             using var content = GetFileFormContent(invalidCsvPath);
@@ -87,6 +95,8 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
         public async Task ProductBulkPriceUpdate_Fails_WhenNegativePrice()
         {
             // Arrange
+            await AuthorizeAdmin();
+
             SeedDatabaseWithProducts();
 
             var csvFilePath = GetCsvFilePath("products_with_negative_price.csv");
@@ -109,18 +119,6 @@ namespace Shop.API.IntegrationTests.ApiIntegrationTests.Product
                     new ProductModel { SKU = "testSKU1", Title = "Product 1", Description = "Description 1", Price = 20.00m },
                     new ProductModel { SKU = "testSKU2", Title = "Product 2", Description = "Description 2", Price = 30.00m },
                     new ProductModel { SKU = "testSKU3", Title = "Product 3", Description = "Description 3", Price = 40.00m }
-                );
-            });
-        }
-
-        private void SeedDatabaseWithProductsForTransAction()
-        {
-            InitializeDatabase(context =>
-            {
-                context.Products.AddRange(
-                    new ProductModel { SKU = "testSKU1", Title = "Product 1", Description = "Description 1", Price = 20.00m },
-                    new ProductModel { SKU = "testSKU2", Title = "Product 2", Description = "Description 2", Price = 30.00m },
-                    new ProductModel { SKU = "invalidProductSKUForUpdate", Title = "Product 3", Description = "Description 3", Price = 40.00m }
                 );
             });
         }

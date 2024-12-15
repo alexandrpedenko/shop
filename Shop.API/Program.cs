@@ -6,7 +6,7 @@ var configuration = builder.Configuration;
 builder.Services.InitServices(configuration);
 
 var app = builder.Build();
-app.InitAppConfig();
+await app.InitAppConfigAsync();
 
 app.Run();
 
