@@ -14,12 +14,13 @@ namespace Shop.API.Controllers
     public sealed class AuthController(
         UserManager<IdentityUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        IConfiguration configuration
-        ) : ControllerBase
+        IConfiguration configuration,
+        ILogger<AuthController> logger) : ControllerBase
     {
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly RoleManager<IdentityRole> _roleManager = roleManager;
         private readonly IConfiguration _configuration = configuration;
+        private readonly ILogger<AuthController> _logger = logger;
 
         /// <summary>
         /// Register a new user
@@ -83,16 +84,23 @@ namespace Shop.API.Controllers
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user == null)
             {
+                _logger.LogWarning("User with email {Email} not found", request.Email);
+
                 return Unauthorized("Invalid email or password.");
             }
 
             if (!await _userManager.CheckPasswordAsync(user, request.Password))
             {
+                _logger.LogWarning("Invalid password for user with email {Email}", request.Email);
+
                 return Unauthorized("Invalid email or password.");
             }
 
             var roles = await _userManager.GetRolesAsync(user);
             var token = JwtTokenHelper.GenerateToken(user, roles, _configuration);
+
+
+            _logger.LogInformation("User with email {Email} logged in", request.Email);
 
             return Ok(new LoginResponseDto { Token = token });
         }

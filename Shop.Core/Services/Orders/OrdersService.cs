@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Shop.Core.DataEF;
 using Shop.Core.DataEF.Models;
 using Shop.Core.DTOs.Orders;
@@ -10,10 +11,14 @@ using System.Text.Json;
 
 namespace Shop.Core.Services.Orders
 {
-    public sealed class OrdersService(ShopContext context, RedisPublisher redisPublisher)
+    public sealed class OrdersService(
+        ShopContext context,
+        RedisPublisher redisPublisher,
+        ILogger<OrdersService> logger)
     {
         private readonly ShopContext _context = context;
         private readonly RedisPublisher _redisPublisher = redisPublisher;
+        private readonly ILogger<OrdersService> _logger = logger;
 
         private const string failingError = "An error occurred while creating the order.";
 
@@ -43,10 +48,14 @@ namespace Shop.Core.Services.Orders
                 var message = JsonSerializer.Serialize(new { OrderId = orderModel.Id, Timestamp = DateTime.UtcNow });
                 await _redisPublisher.PublishAsync("order_channel", message);
 
+                _logger.LogInformation("Order created with ID {OrderId} and TotalPrice {TotalPrice}", orderModel.Id, orderModel.TotalPrice);
+
                 return OperationResult<int>.Success(orderModel.Id);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to create order - {ErrorMessage}", ex.Message);
+
                 await transaction.RollbackAsync();
                 return OperationResult<int>.Failure($"{failingError}: {ex.Message}", OperationErrorType.Unexpected);
             }
@@ -137,6 +146,7 @@ namespace Shop.Core.Services.Orders
             return new OrderModel
             {
                 OrderDate = order.OrderDate,
+                TotalPrice = order.TotalPrice,
                 OrderLines = order.OrderLines.Select(ol => new OrderLineModel
                 {
                     ProductSKU = ol.ProductSKU,
