@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using RepoDb;
+using Serilog;
 using Shop.Core.DataEF;
 using Shop.Core.Mapping.ProductProfile;
 using Shop.Core.Services.Orders;
@@ -30,6 +31,7 @@ namespace Shop.API.Extensions
                 .Setup()
                 .UseSqlServer();
 
+            AddSerilog(services, config);
             AddRedis(services, config);
             AddSwagger(services);
             AddApiVersioning(services);
@@ -88,6 +90,22 @@ namespace Shop.API.Extensions
         {
             services.AddSingleton<IConnectionMultiplexer>(sp =>
                 ConnectionMultiplexer.Connect($"{config["Redis:Host"]}:{config["Redis:Port"]}"));
+
+            return services;
+        }
+
+        public static IServiceCollection AddSerilog(this IServiceCollection services, ConfigurationManager config)
+        {
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(config)
+                .Enrich.FromLogContext()
+                .CreateLogger();
+
+            services.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.ClearProviders();
+                loggingBuilder.AddSerilog();
+            });
 
             return services;
         }

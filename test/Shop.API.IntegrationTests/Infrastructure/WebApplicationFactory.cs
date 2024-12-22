@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 using Shop.Core.DataEF;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -25,6 +26,11 @@ public sealed class CustomWebApplicationFactory<TStartup> : WebApplicationFactor
 
         builder.ConfigureServices((context, services) =>
         {
+            services.AddSerilog(configure =>
+            {
+                configure.ReadFrom.Configuration(context.Configuration);
+            });
+
             var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
 
             var descriptor = services.SingleOrDefault(

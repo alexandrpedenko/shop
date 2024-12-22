@@ -40,6 +40,7 @@ namespace Shop.API.Extensions
             });
 
             app.UseMiddleware<ErrorHandlingMiddleware>();
+            app.UseMiddleware<AuthorizationLoggerMiddleware>();
         }
 
         private static async Task InitRolesAsync(WebApplication app)
